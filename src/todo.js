@@ -1,12 +1,18 @@
 class Todo {
+  #id;
+
   constructor(id, text, completed = false) {
-    this.id = id;
+    this.#id = id;
     this.text = text;
     this.completed = completed;
   }
 
   toggle() {
     this.completed = !this.completed;
+  }
+
+  get Id() {
+    return this.#id;
   }
 }
 
