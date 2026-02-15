@@ -33,13 +33,7 @@ function renderTodos() {
     }
   }
 
-  for (let i = 0; i < filteredTodos.length; i++) {
-    const todo = filteredTodos[i];
-
-    const todoItem = document.createElement("div");
-    todoItem.classList.add("p-4", "todo-item");
-    todoListElement.appendChild(todoItem);
-
+  const createTodoText = (todo) => {
     const todoText = document.createElement("div");
     todoText.classList.add("todo-text");
     todoText.setAttribute("id", `todo-text-${todo.id}`);
@@ -47,13 +41,26 @@ function renderTodos() {
       todoText.classList.add("line-through");
     }
     todoText.textContent = todo.text;
-    todoItem.appendChild(todoText);
+    return todoText;
+  };
 
+  const createTodoInput = (todo) => {
     const todoEdit = document.createElement("div");
     todoEdit.classList.add("hidden", "todo-edit");
     todoEdit.value = todo.text;
-    todoItem.appendChild(todoEdit);
-  }
+    return todoEdit;
+  };
+
+  const createTodoItem = (todo) => {
+    const todoItem = document.createElement("div");
+    todoItem.classList.add("p-4", "todo-item");
+    todoListElement.appendChild(todoItem);
+    todoItem.appendChild(createTodoText(todo), createTodoInput(todo));
+    return todoItem;
+  };
+
+  const todoItems = filteredTodos.map(createTodoItem);
+  todoListElement.append(...todoItems);
 }
 
 function renderTodoNavBar(hrefValue) {
