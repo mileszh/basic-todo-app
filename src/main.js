@@ -1,161 +1,51 @@
-import "./style.css";
+import Todo from "./todo.js";
 
-// user interaction -> state changes -> UI change
+export const FILTERS = {
+  ALL: "all",
+  ACTIVE: "active",
+  COMPLETED: "completed",
+};
 
-const createTodoApp = () => {
-  // State of the app
-  let todos = [];
-  let nextTodoId = 1;
-  let filter = "all"; // can be "all", "active", "completed"
+class TodoList {
+  #todos = [];
 
-  const filterTodo = () => {
-    if (filter === "active") {
-      return todos.filter((todo) => !todo.completed);
-    } else if (filter === "completed") {
-      return todos.filter((todo) => todo.completed);
-    } else {
-      return [...todos];
+  addTodo(text) {
+    this.#todos.push(new Todo(text));
+  }
+
+  toggleTodoById(id) {
+    const todo = this.#todos.find((todo) => todo.id === id);
+    if (todo) {
+      todo.toggle();
     }
-  };
-
-  return {
-    addTodo: (todoText) => {
-      todos = [
-        ...todos,
-        {
-          id: nextTodoId++,
-          text: todoText,
-          completed: false,
-        },
-      ];
-    },
-    toggleTodo: (todoId) => {
-      todos = todos.map((todo) =>
-        todo.id === todoId
-          ? {
-              ...todo,
-              completed: !todo.completed,
-            }
-          : todo,
-      );
-    },
-    markAllCompleted: () => {
-      todos = todos.map((todo) => ({ ...todo, completed: true }));
-    },
-    clearCompleted: () => {
-      todos = todos.filter((todo) => !todo.completed);
-    },
-    getTodos: () => filterTodo(),
-    getNumberOfActiveTodos: () =>
-      todos.reduce((count, todo) => count + (todo.completed ? 0 : 1), 0),
-    setFilter: (newFilter) => {
-      filter = newFilter;
-    },
-  };
-};
-
-// get HTML elements
-const todoNav = document.getElementById("todo-nav");
-const newTodoInput = document.getElementById("new-todo");
-const todoList = document.getElementById("todo-list");
-const markAllCompleted = document.getElementById("mark-all-completed");
-const clearCompleted = document.getElementById("clear-completed");
-const activeTodoCount = document.getElementById("todo-count");
-
-const todoApp = createTodoApp();
-
-const createTodoText = (todo) => {
-  const todoText = document.createElement("div");
-  todoText.classList.add("todo-text");
-  todoText.setAttribute("id", `todo-text-${todo.id}`);
-  if (todo.completed) {
-    todoText.classList.add("line-through");
   }
-  todoText.textContent = todo.text;
-  return todoText;
-};
 
-const createTodoInput = (todo) => {
-  const todoEdit = document.createElement("div");
-  todoEdit.classList.add("hidden", "todo-edit");
-  todoEdit.value = todo.text;
-  return todoEdit;
-};
-
-const createTodoItem = (todo) => {
-  const todoItem = document.createElement("div");
-  todoItem.classList.add("p-4", "todo-item");
-  todoItem.append(createTodoText(todo), createTodoInput(todo));
-  return todoItem;
-};
-
-const renderTodos = () => {
-  todoList.replaceChildren(...todoApp.getTodos().map(createTodoItem));
-  activeTodoCount.textContent = `${todoApp.getNumberOfActiveTodos()} items left`;
-};
-
-const updateClassList = (element, isActive) => {
-  const classes = [
-    "underline",
-    "underline-offset-4",
-    "decoration-rose-700",
-    "decoration-2",
-  ];
-  if (isActive) {
-    element.classList.add(...classes);
-  } else {
-    element.classList.remove(...classes);
+  getTodos(filter) {
+    switch (filter) {
+      case FILTERS.ALL:
+        return [...this.#todos];
+      case FILTERS.COMPLETED:
+        return this.#todos.filter((todo) => todo.completed);
+      case FILTERS.ACTIVE:
+        return this.#todos.filter((todo) => !todo.completed);
+      default:
+        return [...this.#todos];
+    }
   }
-};
 
-const renderTodoNavBar = (hrefValue) => {
-  Array.from(todoNav.children).forEach((e) =>
-    updateClassList(e, e.href === hrefValue),
-  );
-};
-
-const handleNewTodoKeyDown = (event) => {
-  const newTodoInput = event.target;
-  const todoText = newTodoInput.value.trim();
-
-  if (event.key === "Enter" && todoText !== "") {
-    todoApp.addTodo(todoText);
-    newTodoInput.value = "";
-    renderTodos();
+  getNumberOfActiveTodos() {
+    return this.#todos.reduce((acc, todo) => acc + !todo.completed, 0);
   }
-};
 
-const handleClickOnNavbar = (event) => {
-  if (event.target.tagName === "A") {
-    const hrefValue = event.target.href;
-    todoApp.setFilter(hrefValue.split("/").pop() || "all");
-    renderTodos();
-    renderTodoNavBar(hrefValue);
+  deleteCompletedTodos() {
+    this.#todos = this.#todos.filter((todo) => !todo.completed);
   }
-};
 
-const handleClickOnTodoList = (event) => {
-  if (event.target.id.includes("todo-text")) {
-    const todoId = event.target.id.split("-").pop();
-    todoApp.toggleTodo(Number(todoId));
-    renderTodos();
+  markAllCompleted() {
+    this.#todos.forEach((todo) => {
+      todo.completed = true;
+    });
   }
-};
+}
 
-const handleClickOnMarkAllCompleted = () => {
-  todoApp.markAllCompleted();
-  renderTodos();
-};
-
-const handleClickOnClearCompleted = () => {
-  todoApp.clearCompleted();
-  renderTodos();
-};
-
-// event listeners
-newTodoInput.addEventListener("keydown", handleNewTodoKeyDown);
-todoNav.addEventListener("click", handleClickOnNavbar);
-todoList.addEventListener("click", handleClickOnTodoList);
-markAllCompleted.addEventListener("click", handleClickOnMarkAllCompleted);
-clearCompleted.addEventListener("click", handleClickOnClearCompleted);
-document.addEventListener("DOMContentLoaded", renderTodos);
+export default TodoList;
