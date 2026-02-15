@@ -2,137 +2,160 @@ import "./style.css";
 
 // user interaction -> state changes -> UI change
 
-// State of the app
-const todos = [
-  { id: 1, text: "Buy coffee", completed: false },
-  { id: 2, text: "Buy bread", completed: false },
-  { id: 3, text: "Buy jam", completed: true },
-];
+const createTodoApp = () => {
+  // State of the app
+  let todos = [];
+  let nextTodoId = 1;
+  let filter = "all"; // can be "all", "active", "completed"
 
-let nextTodoId = 4;
-let filter = "all"; // can be "all", "active", "completed"
+  const filterTodo = () => {
+    if (filter === "active") {
+      return todos.filter((todo) => !todo.completed);
+    } else if (filter === "completed") {
+      return todos.filter((todo) => todo.completed);
+    } else {
+      return [...todos];
+    }
+  };
+
+  return {
+    addTodo: (todoText) => {
+      todos = [
+        ...todos,
+        {
+          id: nextTodoId++,
+          text: todoText,
+          completed: false,
+        },
+      ];
+    },
+    toggleTodo: (todoId) => {
+      todos = todos.map((todo) =>
+        todo.id === todoId
+          ? {
+              ...todo,
+              completed: !todo.completed,
+            }
+          : todo,
+      );
+    },
+    markAllCompleted: () => {
+      todos = todos.map((todo) => ({ ...todo, completed: true }));
+    },
+    clearCompleted: () => {
+      todos = todos.filter((todo) => !todo.completed);
+    },
+    getTodos: () => filterTodo(),
+    getNumberOfActiveTodos: () =>
+      todos.reduce((count, todo) => count + (todo.completed ? 0 : 1), 0),
+    setFilter: (newFilter) => {
+      filter = newFilter;
+    },
+  };
+};
 
 // get HTML elements
 const todoNav = document.getElementById("todo-nav");
 const newTodoInput = document.getElementById("new-todo");
 const todoList = document.getElementById("todo-list");
+const markAllCompleted = document.getElementById("mark-all-completed");
+const clearCompleted = document.getElementById("clear-completed");
+const activeTodoCount = document.getElementById("todo-count");
 
-function renderTodos() {
-  const todoListElement = document.getElementById("todo-list");
-  todoListElement.innerHTML = "";
+const todoApp = createTodoApp();
 
-  const filteredTodos = [];
-  for (let i = 0; i < todos.length; i++) {
-    const todo = todos[i];
-    if (filter === "all") {
-      filteredTodos.push(todo);
-    } else if (filter === "completed" && todo.completed) {
-      filteredTodos.push(todo);
-    } else if (filter === "active" && todo.completed == false) {
-      filteredTodos.push(todo);
-    }
+const createTodoText = (todo) => {
+  const todoText = document.createElement("div");
+  todoText.classList.add("todo-text");
+  todoText.setAttribute("id", `todo-text-${todo.id}`);
+  if (todo.completed) {
+    todoText.classList.add("line-through");
   }
+  todoText.textContent = todo.text;
+  return todoText;
+};
 
-  const createTodoText = (todo) => {
-    const todoText = document.createElement("div");
-    todoText.classList.add("todo-text");
-    todoText.setAttribute("id", `todo-text-${todo.id}`);
-    if (todo.completed) {
-      todoText.classList.add("line-through");
-    }
-    todoText.textContent = todo.text;
-    return todoText;
-  };
+const createTodoInput = (todo) => {
+  const todoEdit = document.createElement("div");
+  todoEdit.classList.add("hidden", "todo-edit");
+  todoEdit.value = todo.text;
+  return todoEdit;
+};
 
-  const createTodoInput = (todo) => {
-    const todoEdit = document.createElement("div");
-    todoEdit.classList.add("hidden", "todo-edit");
-    todoEdit.value = todo.text;
-    return todoEdit;
-  };
+const createTodoItem = (todo) => {
+  const todoItem = document.createElement("div");
+  todoItem.classList.add("p-4", "todo-item");
+  todoItem.append(createTodoText(todo), createTodoInput(todo));
+  return todoItem;
+};
 
-  const createTodoItem = (todo) => {
-    const todoItem = document.createElement("div");
-    todoItem.classList.add("p-4", "todo-item");
-    todoListElement.appendChild(todoItem);
-    todoItem.appendChild(createTodoText(todo), createTodoInput(todo));
-    return todoItem;
-  };
+const renderTodos = () => {
+  todoList.replaceChildren(...todoApp.getTodos().map(createTodoItem));
+  activeTodoCount.textContent = `${todoApp.getNumberOfActiveTodos()} items left`;
+};
 
-  const todoItems = filteredTodos.map(createTodoItem);
-  todoListElement.append(...todoItems);
-}
-
-function renderTodoNavBar(hrefValue) {
-  const todoNav = document.getElementById("todo-nav");
-  const elements = todoNav.children;
-
-  for (let i = 0; i < elements.length; i++) {
-    const element = elements[i];
-
-    if (element.href === hrefValue) {
-      element.classList.add(
-        "underline",
-        "underline-offset-4",
-        "decoration-rose-700",
-        "decoration-2",
-      );
-    } else {
-      element.classList.remove(
-        "underline",
-        "underline-offset-4",
-        "decoration-rose-700",
-        "decoration-2",
-      );
-    }
+const updateClassList = (element, isActive) => {
+  const classes = [
+    "underline",
+    "underline-offset-4",
+    "decoration-rose-700",
+    "decoration-2",
+  ];
+  if (isActive) {
+    element.classList.add(...classes);
+  } else {
+    element.classList.remove(...classes);
   }
-}
+};
 
-function handleNewTodoKeyDown(event) {
+const renderTodoNavBar = (hrefValue) => {
+  Array.from(todoNav.children).forEach((e) =>
+    updateClassList(e, e.href === hrefValue),
+  );
+};
+
+const handleNewTodoKeyDown = (event) => {
   const newTodoInput = event.target;
   const todoText = newTodoInput.value.trim();
 
   if (event.key === "Enter" && todoText !== "") {
-    todos.push({
-      id: nextTodoId++,
-      text: todoText,
-      completed: false,
-    });
+    todoApp.addTodo(todoText);
     newTodoInput.value = "";
     renderTodos();
   }
-}
+};
 
-function handleClickOnNavbar(event) {
+const handleClickOnNavbar = (event) => {
   if (event.target.tagName === "A") {
-    // "#/completed"
-    // ["#", "completed"]
-    // "completed"
     const hrefValue = event.target.href;
-    const action = hrefValue.split("/").pop();
-    filter = action === "" ? "all" : action;
+    todoApp.setFilter(hrefValue.split("/").pop() || "all");
     renderTodos();
     renderTodoNavBar(hrefValue);
   }
-}
+};
 
-function handleClickOnTodoList(event) {
+const handleClickOnTodoList = (event) => {
   if (event.target.id.includes("todo-text")) {
     const todoId = event.target.id.split("-").pop();
-    const todoNumber = Number(todoId);
-
-    for (let i = 0; i < todos.length; i++) {
-      if (todos[i].id === todoNumber) {
-        todos[i].completed = !todos[i].completed;
-      }
-    }
-
+    todoApp.toggleTodo(Number(todoId));
     renderTodos();
   }
-}
+};
+
+const handleClickOnMarkAllCompleted = () => {
+  todoApp.markAllCompleted();
+  renderTodos();
+};
+
+const handleClickOnClearCompleted = () => {
+  todoApp.clearCompleted();
+  renderTodos();
+};
 
 // event listeners
 newTodoInput.addEventListener("keydown", handleNewTodoKeyDown);
 todoNav.addEventListener("click", handleClickOnNavbar);
 todoList.addEventListener("click", handleClickOnTodoList);
-document.addEventListener("DOMContentLoaded", renderTodos());
+markAllCompleted.addEventListener("click", handleClickOnMarkAllCompleted);
+clearCompleted.addEventListener("click", handleClickOnClearCompleted);
+document.addEventListener("DOMContentLoaded", renderTodos);
